@@ -1,0 +1,73 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-binance-dark text-binance-text;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+      sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-binance-yellow text-binance-dark font-semibold px-6 py-2.5 rounded-md 
+           hover:bg-yellow-500 transition-colors duration-200 disabled:opacity-50 
+           disabled:cursor-not-allowed;
+  }
+  
+  .btn-secondary {
+    @apply bg-binance-gray-light text-binance-text font-semibold px-6 py-2.5 rounded-md 
+           hover:bg-binance-gray-border transition-colors duration-200 border 
+           border-binance-gray-border;
+  }
+  
+  .input-field {
+    @apply bg-binance-gray text-binance-text border border-binance-gray-border 
+           rounded-md px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-binance-yellow 
+           focus:border-transparent transition-all duration-200;
+  }
+  
+  .card {
+    @apply bg-binance-gray border border-binance-gray-border rounded-lg p-6;
+  }
+  
+  .toggle-switch {
+    @apply relative inline-block w-11 h-6;
+  }
+  
+  .toggle-switch input {
+    @apply opacity-0 w-0 h-0;
+  }
+  
+  .toggle-slider {
+    @apply absolute cursor-pointer top-0 left-0 right-0 bottom-0 bg-binance-gray-light 
+           transition duration-300 rounded-full;
+  }
+  
+  .toggle-slider:before {
+    @apply absolute content-[''] h-4 w-4 left-1 bottom-1 bg-binance-text 
+           transition duration-300 rounded-full;
+  }
+  
+  input:checked + .toggle-slider {
+    @apply bg-binance-yellow;
+  }
+  
+  input:checked + .toggle-slider:before {
+    @apply transform translate-x-5;
+  }
+  
+  input:disabled + .toggle-slider {
+    @apply cursor-not-allowed opacity-50;
+  }
+  
+  input:disabled:checked + .toggle-slider {
+    @apply bg-binance-yellow/50;
+  }
+}
+
