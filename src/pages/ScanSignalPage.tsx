@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { websocketClientService } from '../services/websocketClient';
 import type { ScanSignal } from '../types/scanSignal';
+import SignalChart from '../components/SignalChart';
 
 type SortColumn = 'symbol' | 'trend' | 'state' | 'score' | 'ema_fast' | 'ema_slow' | 'ema_50' | 'adx' | 'time';
 type SortDirection = 'asc' | 'desc';
@@ -12,6 +13,7 @@ export const ScanSignalPage: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [sortColumn, setSortColumn] = useState<SortColumn>('symbol');
     const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+    const [chartSymbol, setChartSymbol] = useState<string | null>(null);
     const mountedRef = useRef(true);
 
     useEffect(() => {
@@ -226,6 +228,11 @@ export const ScanSignalPage: React.FC = () => {
     // Get time from first signal (all signals have same time)
     const displayTime = signals.length > 0 ? formatTime(signals[0].time) : null;
 
+    // Create symbol list for chart navigation
+    const symbolList = useMemo(() => {
+        return signals.map(s => s.symbol).sort();
+    }, [signals]);
+
     const SortIcon: React.FC<{ column: SortColumn }> = ({ column }) => {
         if (sortColumn !== column) {
             return (
@@ -381,7 +388,11 @@ export const ScanSignalPage: React.FC = () => {
                                                             key={`bull-${signal.symbol}-${index}`}
                                                             className="border-b border-binance-gray-border hover:bg-binance-gray-light transition-colors"
                                                         >
-                                                            <td className="py-3 px-4">
+                                                            <td
+                                                                className="py-3 px-4 cursor-pointer hover:text-binance-yellow transition-colors"
+                                                                onClick={() => setChartSymbol(signal.symbol)}
+                                                                title="Click to view chart"
+                                                            >
                                                                 <span className="font-semibold text-binance-text">
                                                                     {signal.symbol}
                                                                 </span>
@@ -473,7 +484,11 @@ export const ScanSignalPage: React.FC = () => {
                                                             key={`bear-${signal.symbol}-${index}`}
                                                             className="border-b border-binance-gray-border hover:bg-binance-gray-light transition-colors"
                                                         >
-                                                            <td className="py-3 px-4">
+                                                            <td
+                                                                className="py-3 px-4 cursor-pointer hover:text-binance-yellow transition-colors"
+                                                                onClick={() => setChartSymbol(signal.symbol)}
+                                                                title="Click to view chart"
+                                                            >
                                                                 <span className="font-semibold text-binance-text">
                                                                     {signal.symbol}
                                                                 </span>
@@ -630,6 +645,17 @@ export const ScanSignalPage: React.FC = () => {
                             </div>
                         </div>
                     </div>
+                )}
+
+                {/* Signal Chart Modal */}
+                {chartSymbol && (
+                    <SignalChart
+                        symbol={chartSymbol}
+                        interval="1h"
+                        onClose={() => setChartSymbol(null)}
+                        symbolList={symbolList}
+                        onSymbolChange={(newSymbol) => setChartSymbol(newSymbol)}
+                    />
                 )}
             </div>
         </div>
