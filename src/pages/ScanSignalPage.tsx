@@ -228,10 +228,10 @@ export const ScanSignalPage: React.FC = () => {
     // Get time from first signal (all signals have same time)
     const displayTime = signals.length > 0 ? formatTime(signals[0].time) : null;
 
-    // Create symbol list for chart navigation
+    // Create symbol list for chart navigation - use sortedSignals to maintain sort order
     const symbolList = useMemo(() => {
-        return signals.map(s => s.symbol).sort();
-    }, [signals]);
+        return sortedSignals.map(s => s.symbol);
+    }, [sortedSignals]);
 
     const SortIcon: React.FC<{ column: SortColumn }> = ({ column }) => {
         if (sortColumn !== column) {

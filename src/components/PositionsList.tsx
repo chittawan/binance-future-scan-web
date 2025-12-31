@@ -220,14 +220,29 @@ export const PositionsList: React.FC<PositionsListProps> = ({
   }, [spotOrders]);
 
   // Get list of symbols from active positions and spot orders for chart navigation
+  // Use sortedPositions and sortedSpotOrders to maintain sort order
   const symbolList = React.useMemo(() => {
-    const futuresSymbols = activePositions.map(pos => pos.symbol);
-    const spotSymbols = filteredSpotOrders.map(order => `${order.asset}USDT`);
-    // Combine futures and spot symbols, remove duplicates, and sort
-    const combined = [...futuresSymbols, ...spotSymbols];
-    const unique = Array.from(new Set(combined));
-    return unique.sort();
-  }, [activePositions, filteredSpotOrders]);
+    const futuresSymbols = sortedPositions.map(pos => pos.symbol);
+    const spotSymbols = sortedSpotOrders.map(order => `${order.asset}USDT`);
+    // Combine futures and spot symbols, remove duplicates while maintaining order
+    const combined: string[] = [];
+    const seen = new Set<string>();
+    // Add futures symbols first (maintaining sort order)
+    futuresSymbols.forEach(symbol => {
+      if (!seen.has(symbol)) {
+        combined.push(symbol);
+        seen.add(symbol);
+      }
+    });
+    // Add spot symbols (maintaining sort order)
+    spotSymbols.forEach(symbol => {
+      if (!seen.has(symbol)) {
+        combined.push(symbol);
+        seen.add(symbol);
+      }
+    });
+    return combined;
+  }, [sortedPositions, sortedSpotOrders]);
 
   // Sort spot orders based on spotSortState
   const sortedSpotOrders = React.useMemo(() => {
