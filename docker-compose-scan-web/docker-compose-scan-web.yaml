@@ -13,9 +13,9 @@ services:
     <<: *bot-scan-web-base
     container_name: binance-future-scan-web
     ports:
-      - "8500:8500"
+      - "8501:8501"
     restart: unless-stopped
     environment:
       - API_BASE_URL=https://futures-signal-api.codewalk.myds.me
-      - PORT=8500
+      - PORT=8501
   

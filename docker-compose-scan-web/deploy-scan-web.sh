@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-COMPOSE_FILE="docker-compose-web.yaml"
+COMPOSE_FILE="docker-compose-scan-web.yaml"
 API_IMAGE="registry.codewalk.myds.me/binance-futures-scan-web"
 
 API_TAG="$1"
@@ -11,8 +11,8 @@ shift 2 || true   # service names ที่เหลือ
 if [ -z "$API_TAG" ]; then
   echo "❌ API_TAG is required"
   echo "Usage:"
-  echo "  ./deploy-web.sh <tag> all"
-  echo "  ./deploy-web.sh <tag> <service> [service...]"
+  echo "  ./deploy-scan-web.sh <tag> all"
+  echo "  ./deploy-scan-web.sh <tag> <service> [service...]"
   exit 1
 fi
 
