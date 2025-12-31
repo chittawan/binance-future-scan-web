@@ -2,7 +2,7 @@
 set -e
 
 COMPOSE_FILE="docker-compose-web.yaml"
-API_IMAGE="registry.codewalk.myds.me/binance-futures-bot-web"
+API_IMAGE="registry.codewalk.myds.me/binance-futures-scan-web"
 
 API_TAG="$1"
 TARGET="$2"

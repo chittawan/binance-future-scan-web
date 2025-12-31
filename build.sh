@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# Build and push Docker image for binance-futures-bot-web
+# Build and push Docker image for binance-futures-scan-web
 # This script automatically generates a tag based on the current date
 
 DATE_TAG=$(date +"%Y.%m.%d")
-IMAGE="registry.codewalk.myds.me/binance-futures-bot-web"
+IMAGE="registry.codewalk.myds.me/binance-futures-scan-web"
 
 # Get the last build number for today
 LAST_NUMBER=$(crane ls $IMAGE 2>/dev/null \
@@ -29,7 +29,7 @@ echo ""
 # Build and push
 docker buildx build \
   --platform linux/amd64,linux/arm64 \
-  -t registry.codewalk.myds.me/binance-futures-bot-web:$TAG \
+  -t registry.codewalk.myds.me/binance-futures-scan-web:$TAG \
   --push .
 
 if [ $? -eq 0 ]; then
@@ -40,7 +40,7 @@ if [ $? -eq 0 ]; then
   echo "New image tag: $TAG"
   echo ""
   echo "To update docker-compose files, change the image tag to:"
-  echo "  image: registry.codewalk.myds.me/binance-futures-bot-web:$TAG"
+  echo "  image: registry.codewalk.myds.me/binance-futures-scan-web:$TAG"
   echo "=========================================="
 else
   echo ""

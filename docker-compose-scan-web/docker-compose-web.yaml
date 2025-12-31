@@ -1,7 +1,7 @@
 version: '3.8'
 
-x-bot-web-base: &bot-web-base
-  image: registry.codewalk.myds.me/binance-futures-bot-web:${API_TAG}
+x-bot-scan-web-base: &bot-scan-web-base
+  image: registry.codewalk.myds.me/binance-futures-scan-web:${API_TAG}
   restart: unless-stopped
   environment:
     TRADING_CONFIG_DIR: /app/trading_config.json
@@ -9,92 +9,13 @@ x-bot-web-base: &bot-web-base
   # cpus: 1.5  # Commented out: kernel does not support CPU CFS scheduler
 services:
 
-  bot-film-web:
-    <<: *bot-web-base
-    container_name: binance-future-web-film-8005
+  bot-scan-web:
+    <<: *bot-scan-web-base
+    container_name: binance-future-scan-web
     ports:
-      - "8005:8005"
+      - "8500:8500"
     restart: unless-stopped
     environment:
-      - API_BASE_URL=https://fbot-api.codewalk.myds.me
-      - PORT=8005
+      - API_BASE_URL=https://futures-signal-api.codewalk.myds.me
+      - PORT=8500
   
-  bot-nice-web:
-    <<: *bot-web-base
-    container_name: binance-future-web-nice-8003
-    ports:
-      - "8003:8003"
-    restart: unless-stopped
-    environment:
-      - API_BASE_URL=https://futurebot-api.codewalk.myds.me
-      - PORT=8003
-
-  bot-01-web:
-    <<: *bot-web-base
-    container_name: binance-future-web-01-8007
-    ports:
-      - "8007:8007"
-    restart: unless-stopped
-    environment:
-      - API_BASE_URL=https://futurebot01-api.codewalk.myds.me
-      - PORT=8007
-
-  bot-02-web:
-    <<: *bot-web-base
-    container_name: binance-future-web-02-8009
-    ports:
-      - "8009:8009"
-    restart: unless-stopped
-    environment:
-      - API_BASE_URL=https://futurebot02-api.codewalk.myds.me
-      - PORT=8009
-  
-  bot-03-web:
-    <<: *bot-web-base
-    container_name: binance-future-web-03-8011
-    ports:
-      - "8011:8011"
-    restart: unless-stopped
-    environment:
-      - API_BASE_URL=https://futurebot03-api.codewalk.myds.me
-      - PORT=8011
-
-  bot-04-web:
-    <<: *bot-web-base
-    container_name: binance-future-web-04-8013
-    ports:
-      - "8013:8013"
-    restart: unless-stopped
-    environment:
-      - API_BASE_URL=https://futurebot04-api.codewalk.myds.me
-      - PORT=8013
-
-  bot-05-web:
-    <<: *bot-web-base
-    container_name: binance-future-web-05-8015
-    ports:
-      - "8015:8015"
-    restart: unless-stopped
-    environment:
-      - API_BASE_URL=https://futurebot05-api.codewalk.myds.me
-      - PORT=8015
-
-  bot-06-web:
-    <<: *bot-web-base
-    container_name: binance-future-web-06-8017
-    ports:
-      - "8017:8017"
-    restart: unless-stopped
-    environment:
-      - API_BASE_URL=https://futurebot06-api.codewalk.myds.me
-      - PORT=8017
-
-  bot-07-web:
-    <<: *bot-web-base
-    container_name: binance-future-web-07-8019
-    ports:
-      - "8019:8019"
-    restart: unless-stopped
-    environment:
-      - API_BASE_URL=https://futurebot07-api.codewalk.myds.me
-      - PORT=8019

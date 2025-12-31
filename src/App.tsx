@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
 import { ScanSignalPage } from './pages/ScanSignalPage';
 import { LoginPage } from './pages/LoginPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -6,7 +6,6 @@ import { useAuth } from './contexts/AuthContext';
 import { setAuthToken } from './services/api';
 
 function Navigation() {
-  const location = useLocation();
   const { logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
