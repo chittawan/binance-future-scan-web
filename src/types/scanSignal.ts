@@ -1,12 +1,13 @@
 export interface ScanSignal {
   symbol: string;
-  sig: {
-    time: number;
-    type: 'long' | 'short';
-    ema_fast: number;
-    ema_slow: number;
-    ema_50: number;
-  };
+  time: number;
+  trend: string | null;
+  state: string;
+  score: number;
+  ema_fast: number;
+  ema_slow: number;
+  ema_50: number;
+  adx: number;
 }
 
 export interface ScanSignalMessage {
