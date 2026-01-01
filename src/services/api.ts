@@ -1,5 +1,13 @@
 import axios, { AxiosError } from 'axios';
 import type { TradingConfig, ApiResponse } from '../types/tradingConfig';
+import type {
+  ClientConfig,
+  ClientConfigListResponse,
+  ClientConfigCreateRequest,
+  ClientConfigCreateResponse,
+  ClientConfigDeleteResponse,
+} from '../types/clientConfig';
+import type { SymbolPushPopResponse } from '../types/symbolPushPop';
 
 // Get API base URL from environment variable or use default
 // For Vite: use import.meta.env.VITE_API_BASE_URL
@@ -226,6 +234,35 @@ export const signalService = {
       interval: params.interval || '1h',
       isDebug: params.isDebug ?? false,
     });
+    return response.data;
+  },
+};
+
+export const clientConfigService = {
+  async getClients(): Promise<ClientConfigListResponse> {
+    const response = await apiClient.get<ClientConfigListResponse>('/api/v1/config/config/clients');
+    return response.data;
+  },
+
+  async createClient(client: ClientConfigCreateRequest): Promise<ClientConfigCreateResponse> {
+    const response = await apiClient.post<ClientConfigCreateResponse>('/api/v1/config/config/clients', client);
+    return response.data;
+  },
+
+  async deleteClient(clientName: string): Promise<ClientConfigDeleteResponse> {
+    const response = await apiClient.delete<ClientConfigDeleteResponse>(`/api/v1/config/config/clients/${clientName}`);
+    return response.data;
+  },
+};
+
+export const symbolPushPopService = {
+  async pushSymbol(symbol: string): Promise<SymbolPushPopResponse> {
+    const response = await apiClient.post<SymbolPushPopResponse>(`/api/v1/config/config/symbol/push/${symbol}`, {});
+    return response.data;
+  },
+
+  async popSymbol(symbol: string): Promise<SymbolPushPopResponse> {
+    const response = await apiClient.post<SymbolPushPopResponse>(`/api/v1/config/config/symbol/pop/${symbol}`, {});
     return response.data;
   },
 };

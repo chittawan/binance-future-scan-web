@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { signalService, configService } from '../services/api';
+import { signalService, symbolPushPopService } from '../services/api';
+import type { SymbolPushPopResponse } from '../types/symbolPushPop';
 
 interface SignalChartProps {
   symbol: string;
@@ -34,35 +35,19 @@ const SignalChart: React.FC<SignalChartProps> = ({ symbol, interval = '1h', onCl
   const [showMA, setShowMA] = useState<boolean>(true);
   const [touchStartY, setTouchStartY] = useState<number | null>(null);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
-  const [isAddingSymbol, setIsAddingSymbol] = useState<boolean>(false);
-  const [addSymbolMessage, setAddSymbolMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [symbolAdded, setSymbolAdded] = useState<boolean>(false);
-  const [configSymbols, setConfigSymbols] = useState<string[]>([]);
-
-  // Load config symbols to check if current symbol is in SIGNAL_SYMBOL
-  useEffect(() => {
-    const loadConfigSymbols = async () => {
-      try {
-        const currentConfig = await configService.getConfig();
-        const symbols = Array.isArray(currentConfig.SIGNAL_SYMBOL)
-          ? currentConfig.SIGNAL_SYMBOL
-          : currentConfig.SIGNAL_SYMBOL
-            ? [currentConfig.SIGNAL_SYMBOL]
-            : [];
-        setConfigSymbols(symbols);
-      } catch (error) {
-        console.error('Failed to load config symbols:', error);
-        setConfigSymbols([]);
-      }
-    };
-    loadConfigSymbols();
-  }, [currentSymbol]); // Reload when symbol changes
+  const [showPushConfirm, setShowPushConfirm] = useState<boolean>(false);
+  const [showPopConfirm, setShowPopConfirm] = useState<boolean>(false);
+  const [isPushing, setIsPushing] = useState<boolean>(false);
+  const [isPopping, setIsPopping] = useState<boolean>(false);
+  const [pushPopResult, setPushPopResult] = useState<SymbolPushPopResponse | null>(null);
+  const [pushPopError, setPushPopError] = useState<string | null>(null);
 
   // Update currentSymbol when prop changes
   useEffect(() => {
     setCurrentSymbol(symbol);
     setEditingSymbol(symbol);
-    setSymbolAdded(false); // Reset symbolAdded when symbol changes
+    setPushPopResult(null);
+    setPushPopError(null);
   }, [symbol]);
 
   useEffect(() => {
@@ -690,62 +675,43 @@ const SignalChart: React.FC<SignalChartProps> = ({ symbol, interval = '1h', onCl
     setIsEditingSymbol(false);
   };
 
-  // Check if current symbol is in the config SIGNAL_SYMBOL (case-insensitive)
-  const isSymbolInConfig = configSymbols.length > 0 && configSymbols.some(s => s.toUpperCase() === currentSymbol.toUpperCase());
-
-  // Handle adding symbol to config
-  const handleAddSymbol = async () => {
-    if (!currentSymbol || isAddingSymbol) return;
+  // Handle push symbol
+  const handlePushSymbol = async () => {
+    if (!currentSymbol || isPushing) return;
 
     try {
-      setIsAddingSymbol(true);
-      setAddSymbolMessage(null);
-
-      // Get current config
-      const currentConfig = await configService.getConfig();
-
-      // Prepare new SIGNAL_SYMBOL array
-      const currentSymbols = Array.isArray(currentConfig.SIGNAL_SYMBOL)
-        ? [...currentConfig.SIGNAL_SYMBOL]
-        : currentConfig.SIGNAL_SYMBOL
-          ? [currentConfig.SIGNAL_SYMBOL]
-          : [];
-
-      // Normalize symbol to uppercase
-      const normalizedSymbol = currentSymbol.toUpperCase();
-
-      // Add new symbol if not already present (case-insensitive check)
-      const symbolExists = currentSymbols.some(s => s.toUpperCase() === normalizedSymbol);
-      if (!symbolExists) {
-        currentSymbols.push(normalizedSymbol);
-      }
-
-      // Update config
-      const result = await configService.updateConfig({
-        SIGNAL_SYMBOL: currentSymbols,
-      });
-
-      if (result.error) {
-        setAddSymbolMessage({ type: 'error', text: result.error });
-      } else {
-        setAddSymbolMessage({ type: 'success', text: `${currentSymbol} added to symbols list` });
-        setSymbolAdded(true); // Hide button after successful add
-        // Update configSymbols state to reflect the change
-        setConfigSymbols(currentSymbols);
-        // Update symbolList by calling onSymbolChange to trigger parent update
-        // The parent should reload config symbols
-        setTimeout(() => {
-          setAddSymbolMessage(null);
-        }, 3000);
-      }
+      setIsPushing(true);
+      setPushPopError(null);
+      setPushPopResult(null);
+      const result = await symbolPushPopService.pushSymbol(currentSymbol);
+      setPushPopResult(result);
+      setShowPushConfirm(false);
     } catch (error: any) {
-      console.error('Failed to add symbol:', error);
-      setAddSymbolMessage({
-        type: 'error',
-        text: error.response?.data?.error || 'Failed to add symbol to config',
-      });
+      console.error('Failed to push symbol:', error);
+      setPushPopError(error.response?.data?.detail || error.response?.data?.message || error.message || 'Failed to push symbol');
+      setShowPushConfirm(false);
     } finally {
-      setIsAddingSymbol(false);
+      setIsPushing(false);
+    }
+  };
+
+  // Handle pop symbol
+  const handlePopSymbol = async () => {
+    if (!currentSymbol || isPopping) return;
+
+    try {
+      setIsPopping(true);
+      setPushPopError(null);
+      setPushPopResult(null);
+      const result = await symbolPushPopService.popSymbol(currentSymbol);
+      setPushPopResult(result);
+      setShowPopConfirm(false);
+    } catch (error: any) {
+      console.error('Failed to pop symbol:', error);
+      setPushPopError(error.response?.data?.detail || error.response?.data?.message || error.message || 'Failed to pop symbol');
+      setShowPopConfirm(false);
+    } finally {
+      setIsPopping(false);
     }
   };
 
@@ -853,46 +819,6 @@ const SignalChart: React.FC<SignalChartProps> = ({ symbol, interval = '1h', onCl
         {/* Signal Info */}
         {data?.sig && (
           <div className="mb-3 sm:mb-4 p-2 sm:p-4 bg-binance-gray-light rounded-lg border border-binance-gray-border relative">
-            {/* Add Symbol Button - Binance Theme - Top Right */}
-            {!isSymbolInConfig && !symbolAdded && (
-              <div className="absolute top-2 right-2 sm:top-4 sm:right-4 flex flex-col items-end gap-2 z-10">
-                <button
-                  onClick={handleAddSymbol}
-                  disabled={isAddingSymbol}
-                  className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${isAddingSymbol
-                    ? 'bg-binance-yellow/70 text-binance-dark cursor-wait'
-                    : 'bg-binance-yellow text-binance-dark hover:bg-yellow-500 active:bg-yellow-600'
-                    }`}
-                >
-                  {isAddingSymbol ? (
-                    <span className="flex items-center gap-2">
-                      <span className="inline-block w-3 h-3 border-2 border-binance-dark border-t-transparent rounded-full animate-spin"></span>
-                      <span className="hidden sm:inline">Adding...</span>
-                      <span className="sm:hidden">...</span>
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-1.5">
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M7 3V11M3 7H11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                      </svg>
-                      <span className="hidden sm:inline">Add to Symbols</span>
-                      <span className="sm:hidden">Add</span>
-                    </span>
-                  )}
-                </button>
-                {addSymbolMessage && (
-                  <div
-                    className={`text-[10px] sm:text-xs px-2 py-1 rounded text-right ${addSymbolMessage.type === 'success'
-                      ? 'bg-binance-green/20 text-binance-green border border-binance-green/30'
-                      : 'bg-binance-red/20 text-binance-red border border-binance-red/30'
-                      }`}
-                    style={{ maxWidth: '200px' }}
-                  >
-                    {addSymbolMessage.text}
-                  </div>
-                )}
-              </div>
-            )}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 flex-1">
                 {/* Trend - moved to left */}
@@ -999,10 +925,186 @@ const SignalChart: React.FC<SignalChartProps> = ({ symbol, interval = '1h', onCl
                   </div>
                 </div>
               </div>
+              {/* Push/Pop Buttons - Separated to the right */}
+              <div className="flex flex-col gap-1.5 flex-shrink-0">
+                <div className="text-[10px] sm:text-xs text-binance-text-secondary mb-1.5">Toggle Symbol</div>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => setShowPushConfirm(true)}
+                    disabled={isPushing || isPopping}
+                    className="px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium rounded transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-binance-yellow text-binance-dark hover:bg-yellow-500 active:bg-yellow-600"
+                    title="Push symbol to clients"
+                  >
+                    {isPushing ? (
+                      <span className="inline-block w-3 h-3 border-2 border-binance-dark border-t-transparent rounded-full animate-spin"></span>
+                    ) : (
+                      <span className="hidden sm:inline">Push</span>
+                    )}
+                    <span className="sm:hidden">+</span>
+                  </button>
+                  <button
+                    onClick={() => setShowPopConfirm(true)}
+                    disabled={isPushing || isPopping}
+                    className="px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium rounded transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-binance-red/20 text-binance-red hover:bg-binance-red/30 border border-binance-red/30"
+                    title="Pop symbol from clients"
+                  >
+                    {isPopping ? (
+                      <span className="inline-block w-3 h-3 border-2 border-binance-red border-t-transparent rounded-full animate-spin"></span>
+                    ) : (
+                      <span className="hidden sm:inline">Pop</span>
+                    )}
+                    <span className="sm:hidden">-</span>
+                  </button>
+                </div>
+              </div>
             </div>
             <div className="mt-3 pt-3 border-t border-binance-gray-border">
               <div className="text-[10px] sm:text-xs text-binance-text-secondary">
                 Time: <span className="text-binance-text font-medium">{new Date(data.sig.time).toLocaleString()}</span>
+              </div>
+            </div>
+
+            {/* Push/Pop Result */}
+            {pushPopResult && (
+              <div className="mt-3 pt-3 border-t border-binance-gray-border">
+                <div className="bg-binance-green/10 border border-binance-green/30 rounded-lg p-3">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-binance-green" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <span className="text-xs sm:text-sm font-semibold text-binance-green">{pushPopResult.message}</span>
+                    </div>
+                    <button
+                      onClick={() => setPushPopResult(null)}
+                      className="text-binance-text-secondary hover:text-binance-text"
+                    >
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                  </div>
+                  <div className="text-[10px] sm:text-xs text-binance-text-secondary space-y-1">
+                    <div>Symbol: <span className="text-binance-text font-medium">{pushPopResult.symbol}</span></div>
+                    {pushPopResult.status_counts && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {Object.entries(pushPopResult.status_counts).map(([key, value]) => (
+                          value > 0 && (
+                            <span key={key} className="px-2 py-0.5 rounded bg-binance-gray-light text-binance-text text-[10px]">
+                              {key}: {value}
+                            </span>
+                          )
+                        ))}
+                      </div>
+                    )}
+                    {pushPopResult.results && pushPopResult.results.length > 0 && (
+                      <div className="mt-2">
+                        <div className="text-[10px] text-binance-text-secondary mb-1">Results:</div>
+                        <div className="space-y-1">
+                          {pushPopResult.results.map((result, idx) => (
+                            <div key={idx} className="text-[10px] text-binance-text-secondary pl-2 border-l-2 border-binance-gray-border">
+                              <div>{result.client_name}: <span className={`font-medium ${result.status === 'pushed' || result.status === 'popped' ? 'text-binance-green' : 'text-binance-red'}`}>{result.status}</span></div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Push/Pop Error */}
+            {pushPopError && (
+              <div className="mt-3 pt-3 border-t border-binance-gray-border">
+                <div className="bg-binance-red/10 border border-binance-red/30 rounded-lg p-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-binance-red" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                      </svg>
+                      <span className="text-xs sm:text-sm text-binance-red">{pushPopError}</span>
+                    </div>
+                    <button
+                      onClick={() => setPushPopError(null)}
+                      className="text-binance-text-secondary hover:text-binance-text"
+                    >
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Push Confirmation Dialog */}
+        {showPushConfirm && (
+          <div className="fixed inset-0 bg-[#0B0E11]/90 flex items-center justify-center z-[60] p-4">
+            <div className="bg-binance-gray border border-binance-gray-border rounded-lg p-6 max-w-md w-full">
+              <h3 className="text-lg font-semibold text-binance-text mb-4">Confirm Push Symbol</h3>
+              <p className="text-sm text-binance-text-secondary mb-6">
+                Are you sure you want to push <span className="font-semibold text-binance-text">{currentSymbol}</span> to all configured clients?
+              </p>
+              <div className="flex items-center gap-3 justify-end">
+                <button
+                  onClick={() => setShowPushConfirm(false)}
+                  disabled={isPushing}
+                  className="px-4 py-2 rounded-md text-sm font-medium text-binance-text-secondary hover:text-binance-text hover:bg-binance-gray-light transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handlePushSymbol}
+                  disabled={isPushing}
+                  className="px-4 py-2 rounded-md text-sm font-medium bg-binance-yellow text-binance-dark hover:bg-yellow-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {isPushing ? (
+                    <>
+                      <span className="inline-block w-4 h-4 border-2 border-binance-dark border-t-transparent rounded-full animate-spin"></span>
+                      Pushing...
+                    </>
+                  ) : (
+                    'Confirm Push'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Pop Confirmation Dialog */}
+        {showPopConfirm && (
+          <div className="fixed inset-0 bg-[#0B0E11]/90 flex items-center justify-center z-[60] p-4">
+            <div className="bg-binance-gray border border-binance-gray-border rounded-lg p-6 max-w-md w-full">
+              <h3 className="text-lg font-semibold text-binance-text mb-4">Confirm Pop Symbol</h3>
+              <p className="text-sm text-binance-text-secondary mb-6">
+                Are you sure you want to remove <span className="font-semibold text-binance-text">{currentSymbol}</span> from all configured clients?
+              </p>
+              <div className="flex items-center gap-3 justify-end">
+                <button
+                  onClick={() => setShowPopConfirm(false)}
+                  disabled={isPopping}
+                  className="px-4 py-2 rounded-md text-sm font-medium text-binance-text-secondary hover:text-binance-text hover:bg-binance-gray-light transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handlePopSymbol}
+                  disabled={isPopping}
+                  className="px-4 py-2 rounded-md text-sm font-medium bg-binance-red/20 text-binance-red hover:bg-binance-red/30 border border-binance-red/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {isPopping ? (
+                    <>
+                      <span className="inline-block w-4 h-4 border-2 border-binance-red border-t-transparent rounded-full animate-spin"></span>
+                      Popping...
+                    </>
+                  ) : (
+                    'Confirm Pop'
+                  )}
+                </button>
               </div>
             </div>
           </div>
