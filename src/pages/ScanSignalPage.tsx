@@ -19,6 +19,7 @@ export const ScanSignalPage: React.FC = () => {
     const [chartTrend, setChartTrend] = useState<string | null>(null);
     const [chartState, setChartState] = useState<string | null>(null);
     const [viewMode, setViewMode] = useState<ViewMode>('default');
+    const [searchQuery, setSearchQuery] = useState<string>('');
     const mountedRef = useRef(true);
 
     // Helper function to handle chart symbol click with trend and state
@@ -237,13 +238,24 @@ export const ScanSignalPage: React.FC = () => {
         return sorted;
     }, [signals, sortColumn, sortDirection]);
 
+    // Filter signals by search query
+    const filteredSignals = useMemo(() => {
+        if (!searchQuery.trim()) {
+            return sortedSignals;
+        }
+        const query = searchQuery.trim().toLowerCase();
+        return sortedSignals.filter((signal) => {
+            return signal.symbol.toLowerCase().includes(query);
+        });
+    }, [sortedSignals, searchQuery]);
+
     // Group signals by trend
     const groupedSignals = useMemo(() => {
         const bullish: ScanSignal[] = [];
         const bearish: ScanSignal[] = [];
         const neutral: ScanSignal[] = [];
 
-        sortedSignals.forEach((signal) => {
+        filteredSignals.forEach((signal) => {
             const trend = getTrendLabel(signal).toLowerCase();
             if (trend === 'bullish' || trend === 'long') {
                 bullish.push(signal);
@@ -255,15 +267,15 @@ export const ScanSignalPage: React.FC = () => {
         });
 
         return { bullish, bearish, neutral };
-    }, [sortedSignals]);
+    }, [filteredSignals]);
 
     // Get time from first signal (all signals have same time)
     const displayTime = signals.length > 0 ? formatTime(signals[0].time) : null;
 
-    // Create symbol list for chart navigation - use sortedSignals to maintain sort order
+    // Create symbol list for chart navigation - use filteredSignals to maintain sort order
     const symbolList = useMemo(() => {
-        return sortedSignals.map(s => s.symbol);
-    }, [sortedSignals]);
+        return filteredSignals.map(s => s.symbol);
+    }, [filteredSignals]);
 
     // Helper function to render a signal table panel
     const renderSignalTable = (
@@ -286,7 +298,7 @@ export const ScanSignalPage: React.FC = () => {
                         <thead>
                             <tr className="border-b border-binance-gray-border">
                                 <th
-                                    className="text-left py-3 px-4 text-sm font-semibold text-binance-text-secondary cursor-pointer hover:text-binance-yellow transition-colors select-none"
+                                    className="text-left py-2.5 px-3 text-xs font-semibold text-binance-text-secondary cursor-pointer hover:text-binance-yellow transition-colors select-none"
                                     onClick={() => handleSort('symbol')}
                                 >
                                     <div className="flex items-center">
@@ -295,7 +307,7 @@ export const ScanSignalPage: React.FC = () => {
                                     </div>
                                 </th>
                                 <th
-                                    className="text-left py-3 px-4 text-sm font-semibold text-binance-text-secondary cursor-pointer hover:text-binance-yellow transition-colors select-none"
+                                    className="text-left py-2.5 px-2 text-xs font-semibold text-binance-text-secondary cursor-pointer hover:text-binance-yellow transition-colors select-none"
                                     onClick={() => handleSort('state')}
                                 >
                                     <div className="flex items-center">
@@ -304,7 +316,7 @@ export const ScanSignalPage: React.FC = () => {
                                     </div>
                                 </th>
                                 <th
-                                    className="text-right py-3 px-4 text-sm font-semibold text-binance-text-secondary cursor-pointer hover:text-binance-yellow transition-colors select-none"
+                                    className="text-right py-2.5 px-3 text-xs font-semibold text-binance-text-secondary cursor-pointer hover:text-binance-yellow transition-colors select-none"
                                     onClick={() => handleSort('score')}
                                 >
                                     <div className="flex items-center justify-end">
@@ -313,7 +325,7 @@ export const ScanSignalPage: React.FC = () => {
                                     </div>
                                 </th>
                                 <th
-                                    className="text-right py-3 px-4 text-sm font-semibold text-binance-text-secondary cursor-pointer hover:text-binance-yellow transition-colors select-none"
+                                    className="text-right py-2.5 px-3 text-xs font-semibold text-binance-text-secondary cursor-pointer hover:text-binance-yellow transition-colors select-none"
                                     onClick={() => handleSort('adx')}
                                 >
                                     <div className="flex items-center justify-end">
@@ -337,28 +349,28 @@ export const ScanSignalPage: React.FC = () => {
                                         className="border-b border-binance-gray-border hover:bg-binance-gray-light transition-colors"
                                     >
                                         <td
-                                            className="py-3 px-4 cursor-pointer hover:text-binance-yellow transition-colors"
+                                            className="py-2 px-3 cursor-pointer hover:text-binance-yellow transition-colors"
                                             onClick={() => handleChartSymbolClick(signal.symbol, panelTrend)}
                                             title="Click to view chart"
                                         >
-                                            <span className="font-semibold text-binance-text">
+                                            <span className="text-sm font-semibold text-binance-text">
                                                 {signal.symbol}
                                             </span>
                                         </td>
-                                        <td className="py-3 px-4">
+                                        <td className="py-2 px-2">
                                             <span
-                                                className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${getStateBadgeClass(signal.state)}`}
+                                                className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium ${getStateBadgeClass(signal.state)}`}
                                             >
                                                 {formatState(signal.state)}
                                             </span>
                                         </td>
-                                        <td className="py-3 px-4 text-right">
-                                            <span className="text-binance-text font-semibold">
+                                        <td className="py-2 px-3 text-right">
+                                            <span className="text-sm text-binance-text font-semibold">
                                                 {signal.score}
                                             </span>
                                         </td>
-                                        <td className="py-3 px-4 text-right">
-                                            <span className="text-binance-text">
+                                        <td className="py-2 px-3 text-right">
+                                            <span className="text-sm text-binance-text">
                                                 {signal.adx.toFixed(2)}
                                             </span>
                                         </td>
@@ -442,6 +454,45 @@ export const ScanSignalPage: React.FC = () => {
                     </div>
                 )}
 
+                {/* Search Bar */}
+                {signals.length > 0 && (
+                    <div className="mb-4">
+                        <div className="relative">
+                            <input
+                                type="text"
+                                placeholder="ค้นหาเหรียญ (เช่น BTCUSDT, ETHUSDT...)"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full px-4 py-2.5 pl-10 bg-binance-gray-light border border-binance-gray-border rounded-lg text-binance-text placeholder-binance-text-secondary focus:outline-none focus:ring-2 focus:ring-binance-yellow focus:border-transparent transition-all"
+                            />
+                            <svg
+                                className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-binance-text-secondary"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            {searchQuery && (
+                                <button
+                                    onClick={() => setSearchQuery('')}
+                                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-binance-text-secondary hover:text-binance-text transition-colors"
+                                    title="Clear search"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            )}
+                        </div>
+                        {searchQuery && (
+                            <div className="mt-2 text-sm text-binance-text-secondary">
+                                พบ {filteredSignals.length} เหรียญ จากทั้งหมด {signals.length} เหรียญ
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 {/* Time Label and View Mode */}
                 {displayTime && signals.length > 0 && (
                     <div className="mb-4 flex items-center justify-between">
@@ -479,6 +530,12 @@ export const ScanSignalPage: React.FC = () => {
                             {isConnected
                                 ? 'Waiting for signals...'
                                 : 'Not connected. Please wait for connection...'}
+                        </div>
+                    </div>
+                ) : filteredSignals.length === 0 ? (
+                    <div className="card text-center py-12">
+                        <div className="text-binance-text-secondary">
+                            ไม่พบเหรียญที่ตรงกับคำค้นหา "{searchQuery}"
                         </div>
                     </div>
                 ) : (
