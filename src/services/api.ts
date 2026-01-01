@@ -1,7 +1,6 @@
 import axios, { AxiosError } from 'axios';
 import type { TradingConfig, ApiResponse } from '../types/tradingConfig';
 import type {
-  ClientConfig,
   ClientConfigListResponse,
   ClientConfigCreateRequest,
   ClientConfigCreateResponse,
