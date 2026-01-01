@@ -16,8 +16,23 @@ export const ScanSignalPage: React.FC = () => {
     const [sortColumn, setSortColumn] = useState<SortColumn>('symbol');
     const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
     const [chartSymbol, setChartSymbol] = useState<string | null>(null);
+    const [chartTrend, setChartTrend] = useState<string | null>(null);
     const [viewMode, setViewMode] = useState<ViewMode>('default');
     const mountedRef = useRef(true);
+
+    // Helper function to handle chart symbol click with trend
+    const handleChartSymbolClick = (symbol: string, panelTrend?: 'Bullish' | 'Bearish' | 'Neutral') => {
+        const signal = signals.find(s => s.symbol === symbol);
+        // Use panelTrend if provided (from which panel it was clicked), otherwise use getTrendLabel
+        let trend: string | null = null;
+        if (panelTrend) {
+            trend = panelTrend;
+        } else if (signal) {
+            trend = getTrendLabel(signal);
+        }
+        setChartSymbol(symbol);
+        setChartTrend(trend);
+    };
 
     useEffect(() => {
         mountedRef.current = true;
@@ -252,7 +267,8 @@ export const ScanSignalPage: React.FC = () => {
         title: string,
         titleColor: string,
         bgColor: string,
-        keyPrefix: string
+        keyPrefix: string,
+        panelTrend?: 'Bullish' | 'Bearish' | 'Neutral'
     ) => {
         return (
             <div className="overflow-hidden">
@@ -318,7 +334,7 @@ export const ScanSignalPage: React.FC = () => {
                                     >
                                         <td
                                             className="py-3 px-4 cursor-pointer hover:text-binance-yellow transition-colors"
-                                            onClick={() => setChartSymbol(signal.symbol)}
+                                            onClick={() => handleChartSymbolClick(signal.symbol, panelTrend)}
                                             title="Click to view chart"
                                         >
                                             <span className="font-semibold text-binance-text">
@@ -474,7 +490,8 @@ export const ScanSignalPage: React.FC = () => {
                                             'Bullish',
                                             'text-binance-green',
                                             'bg-binance-green/10',
-                                            'bull'
+                                            'bull',
+                                            'Bullish'
                                         )}
                                         {/* Bearish Panel - Right 50% */}
                                         {renderSignalTable(
@@ -482,7 +499,8 @@ export const ScanSignalPage: React.FC = () => {
                                             'Bearish',
                                             'text-binance-red',
                                             'bg-binance-red/10',
-                                            'bear'
+                                            'bear',
+                                            'Bearish'
                                         )}
                                     </div>
                                 </div>
@@ -495,7 +513,8 @@ export const ScanSignalPage: React.FC = () => {
                                             'Neutral',
                                             'text-binance-text-secondary',
                                             'bg-binance-text-secondary/10',
-                                            'neutral'
+                                            'neutral',
+                                            'Neutral'
                                         )}
                                     </div>
                                 )}
@@ -512,7 +531,8 @@ export const ScanSignalPage: React.FC = () => {
                                                 'Bullish',
                                                 'text-binance-green',
                                                 'bg-binance-green/10',
-                                                'bull'
+                                                'bull',
+                                                'Bullish'
                                             )}
                                         </div>
                                         {/* Neutral Panel - 4 cols */}
@@ -522,7 +542,8 @@ export const ScanSignalPage: React.FC = () => {
                                                 'Neutral',
                                                 'text-binance-text-secondary',
                                                 'bg-binance-text-secondary/10',
-                                                'neutral'
+                                                'neutral',
+                                                'Neutral'
                                             )}
                                         </div>
                                         {/* Bearish Panel - 4 cols */}
@@ -532,7 +553,8 @@ export const ScanSignalPage: React.FC = () => {
                                                 'Bearish',
                                                 'text-binance-red',
                                                 'bg-binance-red/10',
-                                                'bear'
+                                                'bear',
+                                                'Bearish'
                                             )}
                                         </div>
                                     </div>
@@ -581,9 +603,18 @@ export const ScanSignalPage: React.FC = () => {
                     <SignalChart
                         symbol={chartSymbol}
                         interval="1h"
-                        onClose={() => setChartSymbol(null)}
+                        onClose={() => {
+                            setChartSymbol(null);
+                            setChartTrend(null);
+                        }}
                         symbolList={symbolList}
-                        onSymbolChange={(newSymbol) => setChartSymbol(newSymbol)}
+                        onSymbolChange={(newSymbol) => {
+                            const signal = signals.find(s => s.symbol === newSymbol);
+                            const trend = signal ? getTrendLabel(signal) : null;
+                            setChartSymbol(newSymbol);
+                            setChartTrend(trend);
+                        }}
+                        trend={chartTrend || undefined}
                     />
                 )}
             </div>

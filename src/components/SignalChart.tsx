@@ -7,6 +7,7 @@ interface SignalChartProps {
   onClose?: () => void;
   symbolList?: string[]; // List of symbols for navigation
   onSymbolChange?: (symbol: string) => void; // Callback when symbol changes
+  trend?: string; // Trend from ScanSignalPage (Bullish/Bearish/Neutral)
 }
 
 interface CandleData {
@@ -20,7 +21,7 @@ interface CandleData {
   sigLabel?: string; // L or S label from TradingView logic
 }
 
-const SignalChart: React.FC<SignalChartProps> = ({ symbol, interval = '1h', onClose, symbolList = [], onSymbolChange }) => {
+const SignalChart: React.FC<SignalChartProps> = ({ symbol, interval = '1h', onClose, symbolList = [], onSymbolChange, trend }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -892,24 +893,80 @@ const SignalChart: React.FC<SignalChartProps> = ({ symbol, interval = '1h', onCl
               </div>
             )}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 flex-1">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 flex-1">
+                {/* Signal */}
                 <div>
-                  <div className="text-[10px] sm:text-xs text-binance-text-secondary mb-1">Signal</div>
-                  <div
-                    className="text-base sm:text-lg font-semibold"
-                    style={{
-                      color: data.sig.position === 'LONG' ? '#0ecb81' :
-                        data.sig.position === 'SHORT' ? '#f6465d' :
-                          '#EAECEF'
-                    }}
-                  >
-                    {data.sig.position}
+                  <div className="text-[10px] sm:text-xs text-binance-text-secondary mb-1.5">Signal</div>
+                  <div className="inline-flex items-center px-2.5 py-1 rounded-md bg-binance-gray border border-binance-gray-border">
+                    <span className="text-sm sm:text-base font-semibold text-binance-text">
+                      {data.sig.candle || 'NONE'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Trend */}
+                <div>
+                  <div className="text-[10px] sm:text-xs text-binance-text-secondary mb-1.5">Trend</div>
+                  <div className="inline-flex items-center px-2.5 py-1 rounded-md">
+                    {(() => {
+                      // Use trend from props (from ScanSignalPage) if available, otherwise fallback to data.sig.trend
+                      const trendValue = (trend || data.sig.trend || 'NEUTRAL').toUpperCase();
+                      const isBullish = trendValue === 'BULLISH' || trendValue === 'LONG';
+                      const isBearish = trendValue === 'BEARISH' || trendValue === 'SHORT';
+                      const bgColor = isBullish
+                        ? 'bg-binance-green/20 border border-binance-green/30'
+                        : isBearish
+                          ? 'bg-binance-red/20 border border-binance-red/30'
+                          : 'bg-binance-text-secondary/20 border border-binance-text-secondary/30';
+                      const textColor = isBullish
+                        ? 'text-binance-green'
+                        : isBearish
+                          ? 'text-binance-red'
+                          : 'text-binance-text-secondary';
+
+                      return (
+                        <span className={`text-sm sm:text-base font-semibold ${bgColor} ${textColor} px-2.5 py-1 rounded-md`}>
+                          {trendValue}
+                        </span>
+                      );
+                    })()}
+                  </div>
+                </div>
+
+                {/* Position - from API data.sig.position */}
+                <div>
+                  <div className="text-[10px] sm:text-xs text-binance-text-secondary mb-1.5">Position</div>
+                  <div className="inline-flex items-center px-2.5 py-1 rounded-md">
+                    {(() => {
+                      const position = data.sig.position?.toUpperCase() || 'NONE';
+                      // Use position from API directly (LONG/SHORT/NONE)
+                      const isLong = position === 'LONG';
+                      const isShort = position === 'SHORT';
+                      const bgColor = isLong
+                        ? 'bg-binance-green/20 border border-binance-green/30'
+                        : isShort
+                          ? 'bg-binance-red/20 border border-binance-red/30'
+                          : 'bg-binance-text-secondary/20 border border-binance-text-secondary/30';
+                      const textColor = isLong
+                        ? 'text-binance-green'
+                        : isShort
+                          ? 'text-binance-red'
+                          : 'text-binance-text-secondary';
+
+                      return (
+                        <span className={`text-sm sm:text-base font-semibold ${bgColor} ${textColor} px-2.5 py-1 rounded-md`}>
+                          {position}
+                        </span>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
             </div>
-            <div className="mt-2 text-[10px] sm:text-xs text-binance-text-secondary break-words">
-              Time: {new Date(data.sig.time).toLocaleString()}
+            <div className="mt-3 pt-3 border-t border-binance-gray-border">
+              <div className="text-[10px] sm:text-xs text-binance-text-secondary">
+                Time: <span className="text-binance-text font-medium">{new Date(data.sig.time).toLocaleString()}</span>
+              </div>
             </div>
           </div>
         )}
