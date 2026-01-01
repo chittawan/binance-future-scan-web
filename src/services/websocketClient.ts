@@ -110,8 +110,10 @@ class WebSocketClientService {
 
             this.ws.onmessage = (event) => {
                 try {
-                    const message: WebSocketClientMessage = JSON.parse(event.data);
-                    this.handleMessage(message);
+                    console.log('[WebSocketClient] Received message:', event.data.substring(0, 100) + '...');
+                    const parsed = JSON.parse(event.data);
+                    // Handle both array format (backward compatibility) and object format
+                    this.handleMessage(parsed);
                 } catch (error) {
                     console.error('[WebSocketClient] Failed to parse message:', error);
                 }
@@ -173,11 +175,23 @@ class WebSocketClientService {
     /**
      * Handle incoming WebSocket messages
      */
-    private handleMessage(message: WebSocketClientMessage): void {
+    private handleMessage(message: WebSocketClientMessage | ScanSignal[]): void {
+        // Handle case where message is an array directly (backward compatibility)
+        if (Array.isArray(message)) {
+            console.log('[WebSocketClient] Received array format message with', message.length, 'signals');
+            this.callbacks.onScanSignal?.(message);
+            return;
+        }
+
+        // Handle structured message format
+        console.log('[WebSocketClient] Received message type:', message.type);
         switch (message.type) {
             case 'scan_signal':
                 if ('data' in message && Array.isArray(message.data)) {
+                    console.log('[WebSocketClient] Received scan_signal with', message.data.length, 'signals');
                     this.callbacks.onScanSignal?.(message.data);
+                } else {
+                    console.warn('[WebSocketClient] scan_signal message missing data or data is not array');
                 }
                 break;
             case 'error':

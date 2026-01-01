@@ -576,7 +576,11 @@ export const ScanSignalPage: React.FC = () => {
                                                     key={`neutral-${signal.symbol}-${index}`}
                                                     className="border-b border-binance-gray-border hover:bg-binance-gray-light transition-colors"
                                                 >
-                                                    <td className="py-3 px-4">
+                                                    <td
+                                                        className="py-3 px-4 cursor-pointer hover:text-binance-yellow transition-colors"
+                                                        onClick={() => setChartSymbol(signal.symbol)}
+                                                        title="Click to view chart"
+                                                    >
                                                         <span className="font-semibold text-binance-text">
                                                             {signal.symbol}
                                                         </span>
