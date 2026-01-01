@@ -6,6 +6,8 @@ import SignalChart from '../components/SignalChart';
 type SortColumn = 'symbol' | 'trend' | 'state' | 'score' | 'ema_fast' | 'ema_slow' | 'ema_50' | 'adx' | 'time';
 type SortDirection = 'asc' | 'desc';
 
+type ViewMode = 'default' | 'three-column';
+
 export const ScanSignalPage: React.FC = () => {
     const [signals, setSignals] = useState<ScanSignal[]>([]);
     const [loading, setLoading] = useState(true);
@@ -14,6 +16,7 @@ export const ScanSignalPage: React.FC = () => {
     const [sortColumn, setSortColumn] = useState<SortColumn>('symbol');
     const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
     const [chartSymbol, setChartSymbol] = useState<string | null>(null);
+    const [viewMode, setViewMode] = useState<ViewMode>('default');
     const mountedRef = useRef(true);
 
     useEffect(() => {
@@ -129,6 +132,16 @@ export const ScanSignalPage: React.FC = () => {
         }
     };
 
+    // Helper function to remove LONG_ and SHORT_ prefix from state
+    const formatState = (state: string): string => {
+        if (state.startsWith('LONG_')) {
+            return state.substring(5); // Remove "LONG_"
+        } else if (state.startsWith('SHORT_')) {
+            return state.substring(6); // Remove "SHORT_"
+        }
+        return state;
+    };
+
     const handleSort = (column: SortColumn) => {
         if (sortColumn === column) {
             // Toggle direction if same column
@@ -233,6 +246,112 @@ export const ScanSignalPage: React.FC = () => {
         return sortedSignals.map(s => s.symbol);
     }, [sortedSignals]);
 
+    // Helper function to render a signal table panel
+    const renderSignalTable = (
+        signals: ScanSignal[],
+        title: string,
+        titleColor: string,
+        bgColor: string,
+        keyPrefix: string
+    ) => {
+        return (
+            <div className="overflow-hidden">
+                <div className={`px-4 py-3 border-b border-binance-gray-border ${bgColor}`}>
+                    <h2 className={`text-lg font-semibold ${titleColor}`}>
+                        {title} ({signals.length})
+                    </h2>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full">
+                        <thead>
+                            <tr className="border-b border-binance-gray-border">
+                                <th
+                                    className="text-left py-3 px-4 text-sm font-semibold text-binance-text-secondary cursor-pointer hover:text-binance-yellow transition-colors select-none"
+                                    onClick={() => handleSort('symbol')}
+                                >
+                                    <div className="flex items-center">
+                                        Symbol
+                                        <SortIcon column="symbol" />
+                                    </div>
+                                </th>
+                                <th
+                                    className="text-left py-3 px-4 text-sm font-semibold text-binance-text-secondary cursor-pointer hover:text-binance-yellow transition-colors select-none"
+                                    onClick={() => handleSort('state')}
+                                >
+                                    <div className="flex items-center">
+                                        State
+                                        <SortIcon column="state" />
+                                    </div>
+                                </th>
+                                <th
+                                    className="text-right py-3 px-4 text-sm font-semibold text-binance-text-secondary cursor-pointer hover:text-binance-yellow transition-colors select-none"
+                                    onClick={() => handleSort('score')}
+                                >
+                                    <div className="flex items-center justify-end">
+                                        Score
+                                        <SortIcon column="score" />
+                                    </div>
+                                </th>
+                                <th
+                                    className="text-right py-3 px-4 text-sm font-semibold text-binance-text-secondary cursor-pointer hover:text-binance-yellow transition-colors select-none"
+                                    onClick={() => handleSort('adx')}
+                                >
+                                    <div className="flex items-center justify-end">
+                                        ADX
+                                        <SortIcon column="adx" />
+                                    </div>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {signals.length === 0 ? (
+                                <tr>
+                                    <td colSpan={4} className="py-8 text-center text-binance-text-secondary">
+                                        No {title.toLowerCase()} signals
+                                    </td>
+                                </tr>
+                            ) : (
+                                signals.map((signal, index) => (
+                                    <tr
+                                        key={`${keyPrefix}-${signal.symbol}-${index}`}
+                                        className="border-b border-binance-gray-border hover:bg-binance-gray-light transition-colors"
+                                    >
+                                        <td
+                                            className="py-3 px-4 cursor-pointer hover:text-binance-yellow transition-colors"
+                                            onClick={() => setChartSymbol(signal.symbol)}
+                                            title="Click to view chart"
+                                        >
+                                            <span className="font-semibold text-binance-text">
+                                                {signal.symbol}
+                                            </span>
+                                        </td>
+                                        <td className="py-3 px-4">
+                                            <span
+                                                className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${getStateBadgeClass(signal.state)}`}
+                                            >
+                                                {formatState(signal.state)}
+                                            </span>
+                                        </td>
+                                        <td className="py-3 px-4 text-right">
+                                            <span className="text-binance-text font-semibold">
+                                                {signal.score}
+                                            </span>
+                                        </td>
+                                        <td className="py-3 px-4 text-right">
+                                            <span className="text-binance-text">
+                                                {signal.adx.toFixed(2)}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        );
+    };
+
     const SortIcon: React.FC<{ column: SortColumn }> = ({ column }) => {
         if (sortColumn !== column) {
             return (
@@ -303,11 +422,32 @@ export const ScanSignalPage: React.FC = () => {
                     </div>
                 )}
 
-                {/* Time Label */}
+                {/* Time Label and View Mode */}
                 {displayTime && signals.length > 0 && (
-                    <div className="mb-4">
+                    <div className="mb-4 flex items-center justify-between">
                         <div className="text-sm text-binance-text-secondary">
                             Time: <span className="text-binance-text font-semibold">{displayTime}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm text-binance-text-secondary">View Mode:</span>
+                            <button
+                                onClick={() => setViewMode('default')}
+                                className={`px-3 py-1.5 text-xs rounded transition-colors ${viewMode === 'default'
+                                    ? 'bg-binance-yellow text-binance-dark font-semibold'
+                                    : 'bg-binance-gray-light text-binance-text hover:bg-binance-gray-border'
+                                    }`}
+                            >
+                                Default
+                            </button>
+                            <button
+                                onClick={() => setViewMode('three-column')}
+                                className={`px-3 py-1.5 text-xs rounded transition-colors ${viewMode === 'three-column'
+                                    ? 'bg-binance-yellow text-binance-dark font-semibold'
+                                    : 'bg-binance-gray-light text-binance-text hover:bg-binance-gray-border'
+                                    }`}
+                            >
+                                3 Columns
+                            </button>
                         </div>
                     </div>
                 )}
@@ -323,296 +463,81 @@ export const ScanSignalPage: React.FC = () => {
                     </div>
                 ) : (
                     <>
-                        {/* Bull / Bear Panel - Single Card with 50/50 Split */}
-                        <div className="card overflow-hidden mb-4">
-                            <div className="grid grid-cols-1 lg:grid-cols-2 divide-x divide-binance-gray-border">
-                                {/* Bullish Panel - Left 50% */}
-                                <div className="overflow-hidden">
-                                    <div className="px-4 py-3 border-b border-binance-gray-border bg-binance-green/10">
-                                        <h2 className="text-lg font-semibold text-binance-green">
-                                            Bullish ({groupedSignals.bullish.length})
-                                        </h2>
-                                    </div>
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full">
-                                            <thead>
-                                                <tr className="border-b border-binance-gray-border">
-                                                    <th
-                                                        className="text-left py-3 px-4 text-sm font-semibold text-binance-text-secondary cursor-pointer hover:text-binance-yellow transition-colors select-none"
-                                                        onClick={() => handleSort('symbol')}
-                                                    >
-                                                        <div className="flex items-center">
-                                                            Symbol
-                                                            <SortIcon column="symbol" />
-                                                        </div>
-                                                    </th>
-                                                    <th
-                                                        className="text-left py-3 px-4 text-sm font-semibold text-binance-text-secondary cursor-pointer hover:text-binance-yellow transition-colors select-none"
-                                                        onClick={() => handleSort('state')}
-                                                    >
-                                                        <div className="flex items-center">
-                                                            State
-                                                            <SortIcon column="state" />
-                                                        </div>
-                                                    </th>
-                                                    <th
-                                                        className="text-right py-3 px-4 text-sm font-semibold text-binance-text-secondary cursor-pointer hover:text-binance-yellow transition-colors select-none"
-                                                        onClick={() => handleSort('score')}
-                                                    >
-                                                        <div className="flex items-center justify-end">
-                                                            Score
-                                                            <SortIcon column="score" />
-                                                        </div>
-                                                    </th>
-                                                    <th
-                                                        className="text-right py-3 px-4 text-sm font-semibold text-binance-text-secondary cursor-pointer hover:text-binance-yellow transition-colors select-none"
-                                                        onClick={() => handleSort('adx')}
-                                                    >
-                                                        <div className="flex items-center justify-end">
-                                                            ADX
-                                                            <SortIcon column="adx" />
-                                                        </div>
-                                                    </th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {groupedSignals.bullish.length === 0 ? (
-                                                    <tr>
-                                                        <td colSpan={4} className="py-8 text-center text-binance-text-secondary">
-                                                            No bullish signals
-                                                        </td>
-                                                    </tr>
-                                                ) : (
-                                                    groupedSignals.bullish.map((signal, index) => (
-                                                        <tr
-                                                            key={`bull-${signal.symbol}-${index}`}
-                                                            className="border-b border-binance-gray-border hover:bg-binance-gray-light transition-colors"
-                                                        >
-                                                            <td
-                                                                className="py-3 px-4 cursor-pointer hover:text-binance-yellow transition-colors"
-                                                                onClick={() => setChartSymbol(signal.symbol)}
-                                                                title="Click to view chart"
-                                                            >
-                                                                <span className="font-semibold text-binance-text">
-                                                                    {signal.symbol}
-                                                                </span>
-                                                            </td>
-                                                            <td className="py-3 px-4">
-                                                                <span
-                                                                    className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${getStateBadgeClass(signal.state)}`}
-                                                                >
-                                                                    {signal.state}
-                                                                </span>
-                                                            </td>
-                                                            <td className="py-3 px-4 text-right">
-                                                                <span className="text-binance-text font-semibold">
-                                                                    {signal.score}
-                                                                </span>
-                                                            </td>
-                                                            <td className="py-3 px-4 text-right">
-                                                                <span className="text-binance-text">
-                                                                    {signal.adx.toFixed(2)}
-                                                                </span>
-                                                            </td>
-                                                        </tr>
-                                                    ))
-                                                )}
-                                            </tbody>
-                                        </table>
+                        {viewMode === 'default' ? (
+                            <>
+                                {/* Default Mode: Bull / Bear Panel - Single Card with 50/50 Split */}
+                                <div className="card overflow-hidden mb-4">
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 divide-x divide-binance-gray-border">
+                                        {/* Bullish Panel - Left 50% */}
+                                        {renderSignalTable(
+                                            groupedSignals.bullish,
+                                            'Bullish',
+                                            'text-binance-green',
+                                            'bg-binance-green/10',
+                                            'bull'
+                                        )}
+                                        {/* Bearish Panel - Right 50% */}
+                                        {renderSignalTable(
+                                            groupedSignals.bearish,
+                                            'Bearish',
+                                            'text-binance-red',
+                                            'bg-binance-red/10',
+                                            'bear'
+                                        )}
                                     </div>
                                 </div>
 
-                                {/* Bearish Panel - Right 50% */}
-                                <div className="overflow-hidden">
-                                    <div className="px-4 py-3 border-b border-binance-gray-border bg-binance-red/10">
-                                        <h2 className="text-lg font-semibold text-binance-red">
-                                            Bearish ({groupedSignals.bearish.length})
-                                        </h2>
+                                {/* Neutral Panel at Bottom */}
+                                {groupedSignals.neutral.length > 0 && (
+                                    <div className="card overflow-hidden">
+                                        {renderSignalTable(
+                                            groupedSignals.neutral,
+                                            'Neutral',
+                                            'text-binance-text-secondary',
+                                            'bg-binance-text-secondary/10',
+                                            'neutral'
+                                        )}
                                     </div>
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full">
-                                            <thead>
-                                                <tr className="border-b border-binance-gray-border">
-                                                    <th
-                                                        className="text-left py-3 px-4 text-sm font-semibold text-binance-text-secondary cursor-pointer hover:text-binance-yellow transition-colors select-none"
-                                                        onClick={() => handleSort('symbol')}
-                                                    >
-                                                        <div className="flex items-center">
-                                                            Symbol
-                                                            <SortIcon column="symbol" />
-                                                        </div>
-                                                    </th>
-                                                    <th
-                                                        className="text-left py-3 px-4 text-sm font-semibold text-binance-text-secondary cursor-pointer hover:text-binance-yellow transition-colors select-none"
-                                                        onClick={() => handleSort('state')}
-                                                    >
-                                                        <div className="flex items-center">
-                                                            State
-                                                            <SortIcon column="state" />
-                                                        </div>
-                                                    </th>
-                                                    <th
-                                                        className="text-right py-3 px-4 text-sm font-semibold text-binance-text-secondary cursor-pointer hover:text-binance-yellow transition-colors select-none"
-                                                        onClick={() => handleSort('score')}
-                                                    >
-                                                        <div className="flex items-center justify-end">
-                                                            Score
-                                                            <SortIcon column="score" />
-                                                        </div>
-                                                    </th>
-                                                    <th
-                                                        className="text-right py-3 px-4 text-sm font-semibold text-binance-text-secondary cursor-pointer hover:text-binance-yellow transition-colors select-none"
-                                                        onClick={() => handleSort('adx')}
-                                                    >
-                                                        <div className="flex items-center justify-end">
-                                                            ADX
-                                                            <SortIcon column="adx" />
-                                                        </div>
-                                                    </th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {groupedSignals.bearish.length === 0 ? (
-                                                    <tr>
-                                                        <td colSpan={4} className="py-8 text-center text-binance-text-secondary">
-                                                            No bearish signals
-                                                        </td>
-                                                    </tr>
-                                                ) : (
-                                                    groupedSignals.bearish.map((signal, index) => (
-                                                        <tr
-                                                            key={`bear-${signal.symbol}-${index}`}
-                                                            className="border-b border-binance-gray-border hover:bg-binance-gray-light transition-colors"
-                                                        >
-                                                            <td
-                                                                className="py-3 px-4 cursor-pointer hover:text-binance-yellow transition-colors"
-                                                                onClick={() => setChartSymbol(signal.symbol)}
-                                                                title="Click to view chart"
-                                                            >
-                                                                <span className="font-semibold text-binance-text">
-                                                                    {signal.symbol}
-                                                                </span>
-                                                            </td>
-                                                            <td className="py-3 px-4">
-                                                                <span
-                                                                    className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${getStateBadgeClass(signal.state)}`}
-                                                                >
-                                                                    {signal.state}
-                                                                </span>
-                                                            </td>
-                                                            <td className="py-3 px-4 text-right">
-                                                                <span className="text-binance-text font-semibold">
-                                                                    {signal.score}
-                                                                </span>
-                                                            </td>
-                                                            <td className="py-3 px-4 text-right">
-                                                                <span className="text-binance-text">
-                                                                    {signal.adx.toFixed(2)}
-                                                                </span>
-                                                            </td>
-                                                        </tr>
-                                                    ))
-                                                )}
-                                            </tbody>
-                                        </table>
+                                )}
+                            </>
+                        ) : (
+                            <>
+                                {/* Three Column Mode: Bullish, Neutral, Bearish in 3 columns (4-4-4) */}
+                                <div className="card overflow-hidden">
+                                    <div className="grid grid-cols-1 lg:grid-cols-12 divide-x divide-binance-gray-border">
+                                        {/* Bullish Panel - 4 cols */}
+                                        <div className="lg:col-span-4">
+                                            {renderSignalTable(
+                                                groupedSignals.bullish,
+                                                'Bullish',
+                                                'text-binance-green',
+                                                'bg-binance-green/10',
+                                                'bull'
+                                            )}
+                                        </div>
+                                        {/* Neutral Panel - 4 cols */}
+                                        <div className="lg:col-span-4">
+                                            {renderSignalTable(
+                                                groupedSignals.neutral,
+                                                'Neutral',
+                                                'text-binance-text-secondary',
+                                                'bg-binance-text-secondary/10',
+                                                'neutral'
+                                            )}
+                                        </div>
+                                        {/* Bearish Panel - 4 cols */}
+                                        <div className="lg:col-span-4">
+                                            {renderSignalTable(
+                                                groupedSignals.bearish,
+                                                'Bearish',
+                                                'text-binance-red',
+                                                'bg-binance-red/10',
+                                                'bear'
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-
-                        {/* Neutral Panel at Bottom */}
-                        {groupedSignals.neutral.length > 0 && (
-                            <div className="card overflow-hidden">
-                                <div className="px-4 py-3 border-b border-binance-gray-border bg-binance-text-secondary/10">
-                                    <h2 className="text-lg font-semibold text-binance-text-secondary">
-                                        Neutral ({groupedSignals.neutral.length})
-                                    </h2>
-                                </div>
-                                <div className="overflow-x-auto">
-                                    <table className="w-full">
-                                        <thead>
-                                            <tr className="border-b border-binance-gray-border">
-                                                <th
-                                                    className="text-left py-3 px-4 text-sm font-semibold text-binance-text-secondary cursor-pointer hover:text-binance-yellow transition-colors select-none"
-                                                    onClick={() => handleSort('symbol')}
-                                                >
-                                                    <div className="flex items-center">
-                                                        Symbol
-                                                        <SortIcon column="symbol" />
-                                                    </div>
-                                                </th>
-                                                <th
-                                                    className="text-left py-3 px-4 text-sm font-semibold text-binance-text-secondary cursor-pointer hover:text-binance-yellow transition-colors select-none"
-                                                    onClick={() => handleSort('state')}
-                                                >
-                                                    <div className="flex items-center">
-                                                        State
-                                                        <SortIcon column="state" />
-                                                    </div>
-                                                </th>
-                                                <th
-                                                    className="text-right py-3 px-4 text-sm font-semibold text-binance-text-secondary cursor-pointer hover:text-binance-yellow transition-colors select-none"
-                                                    onClick={() => handleSort('score')}
-                                                >
-                                                    <div className="flex items-center justify-end">
-                                                        Score
-                                                        <SortIcon column="score" />
-                                                    </div>
-                                                </th>
-                                                <th
-                                                    className="text-right py-3 px-4 text-sm font-semibold text-binance-text-secondary cursor-pointer hover:text-binance-yellow transition-colors select-none"
-                                                    onClick={() => handleSort('adx')}
-                                                >
-                                                    <div className="flex items-center justify-end">
-                                                        ADX
-                                                        <SortIcon column="adx" />
-                                                    </div>
-                                                </th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {groupedSignals.neutral.map((signal, index) => (
-                                                <tr
-                                                    key={`neutral-${signal.symbol}-${index}`}
-                                                    className="border-b border-binance-gray-border hover:bg-binance-gray-light transition-colors"
-                                                >
-                                                    <td
-                                                        className="py-3 px-4 cursor-pointer hover:text-binance-yellow transition-colors"
-                                                        onClick={() => setChartSymbol(signal.symbol)}
-                                                        title="Click to view chart"
-                                                    >
-                                                        <span className="font-semibold text-binance-text">
-                                                            {signal.symbol}
-                                                        </span>
-                                                    </td>
-                                                    <td className="py-3 px-4">
-                                                        <span
-                                                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${signal.state === 'WATCH'
-                                                                ? 'bg-binance-yellow/20 text-binance-yellow'
-                                                                : signal.state === 'ACTIVE'
-                                                                    ? 'bg-binance-green/20 text-binance-green'
-                                                                    : 'bg-binance-text-secondary/20 text-binance-text-secondary'
-                                                                }`}
-                                                        >
-                                                            {signal.state}
-                                                        </span>
-                                                    </td>
-                                                    <td className="py-3 px-4 text-right">
-                                                        <span className="text-binance-text font-semibold">
-                                                            {signal.score}
-                                                        </span>
-                                                    </td>
-                                                    <td className="py-3 px-4 text-right">
-                                                        <span className="text-binance-text">
-                                                            {signal.adx.toFixed(2)}
-                                                        </span>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
+                            </>
                         )}
                     </>
                 )}
