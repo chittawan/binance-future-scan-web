@@ -8,6 +8,7 @@ interface SignalChartProps {
   symbolList?: string[]; // List of symbols for navigation
   onSymbolChange?: (symbol: string) => void; // Callback when symbol changes
   trend?: string; // Trend from ScanSignalPage (Bullish/Bearish/Neutral)
+  state?: string; // State from ScanSignalPage
 }
 
 interface CandleData {
@@ -21,7 +22,7 @@ interface CandleData {
   sigLabel?: string; // L or S label from TradingView logic
 }
 
-const SignalChart: React.FC<SignalChartProps> = ({ symbol, interval = '1h', onClose, symbolList = [], onSymbolChange, trend }) => {
+const SignalChart: React.FC<SignalChartProps> = ({ symbol, interval = '1h', onClose, symbolList = [], onSymbolChange, trend, state }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -894,17 +895,7 @@ const SignalChart: React.FC<SignalChartProps> = ({ symbol, interval = '1h', onCl
             )}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 flex-1">
-                {/* Signal */}
-                <div>
-                  <div className="text-[10px] sm:text-xs text-binance-text-secondary mb-1.5">Signal</div>
-                  <div className="inline-flex items-center px-2.5 py-1 rounded-md bg-binance-gray border border-binance-gray-border">
-                    <span className="text-sm sm:text-base font-semibold text-binance-text">
-                      {data.sig.candle || 'NONE'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Trend */}
+                {/* Trend - moved to left */}
                 <div>
                   <div className="text-[10px] sm:text-xs text-binance-text-secondary mb-1.5">Trend</div>
                   <div className="inline-flex items-center px-2.5 py-1 rounded-md">
@@ -927,6 +918,52 @@ const SignalChart: React.FC<SignalChartProps> = ({ symbol, interval = '1h', onCl
                       return (
                         <span className={`text-sm sm:text-base font-semibold ${bgColor} ${textColor} px-2.5 py-1 rounded-md`}>
                           {trendValue}
+                        </span>
+                      );
+                    })()}
+                  </div>
+                </div>
+
+                {/* State - changed from Signal */}
+                <div>
+                  <div className="text-[10px] sm:text-xs text-binance-text-secondary mb-1.5">State</div>
+                  <div className="inline-flex items-center px-2.5 py-1 rounded-md">
+                    {(() => {
+                      // Use state from props (from ScanSignalPage) if available
+                      const stateValue = state || 'NONE';
+                      // Format state: remove LONG_ and SHORT_ prefix
+                      const formatState = (s: string): string => {
+                        if (s.startsWith('LONG_')) {
+                          return s.substring(5);
+                        } else if (s.startsWith('SHORT_')) {
+                          return s.substring(6);
+                        }
+                        return s;
+                      };
+                      const displayState = formatState(stateValue);
+
+                      // Get badge class based on state
+                      const getStateBadgeClass = (s: string): string => {
+                        const stateUpper = s.toUpperCase();
+                        if (stateUpper === 'WATCH' || stateUpper.includes('WATCH')) {
+                          return 'bg-binance-yellow/20 text-binance-yellow border border-binance-yellow/30';
+                        } else if (stateUpper === 'ACTIVE' || stateUpper.includes('ACTIVE')) {
+                          return 'bg-binance-green/20 text-binance-green border border-binance-green/30';
+                        } else if (stateUpper.includes('CONTINUE') || stateUpper.includes('START')) {
+                          if (stateUpper.includes('LONG') || stateUpper.startsWith('LONG')) {
+                            return 'bg-binance-green/20 text-binance-green border border-binance-green/30';
+                          } else if (stateUpper.includes('SHORT') || stateUpper.startsWith('SHORT')) {
+                            return 'bg-binance-red/20 text-binance-red border border-binance-red/30';
+                          }
+                        }
+                        return 'bg-binance-text-secondary/20 text-binance-text-secondary border border-binance-text-secondary/30';
+                      };
+
+                      const badgeClass = getStateBadgeClass(stateValue);
+
+                      return (
+                        <span className={`text-sm sm:text-base font-semibold ${badgeClass} px-2.5 py-1 rounded-md`}>
+                          {displayState}
                         </span>
                       );
                     })()}

@@ -17,10 +17,11 @@ export const ScanSignalPage: React.FC = () => {
     const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
     const [chartSymbol, setChartSymbol] = useState<string | null>(null);
     const [chartTrend, setChartTrend] = useState<string | null>(null);
+    const [chartState, setChartState] = useState<string | null>(null);
     const [viewMode, setViewMode] = useState<ViewMode>('default');
     const mountedRef = useRef(true);
 
-    // Helper function to handle chart symbol click with trend
+    // Helper function to handle chart symbol click with trend and state
     const handleChartSymbolClick = (symbol: string, panelTrend?: 'Bullish' | 'Bearish' | 'Neutral') => {
         const signal = signals.find(s => s.symbol === symbol);
         // Use panelTrend if provided (from which panel it was clicked), otherwise use getTrendLabel
@@ -30,8 +31,11 @@ export const ScanSignalPage: React.FC = () => {
         } else if (signal) {
             trend = getTrendLabel(signal);
         }
+        // Get state from signal
+        const state = signal?.state || null;
         setChartSymbol(symbol);
         setChartTrend(trend);
+        setChartState(state);
     };
 
     useEffect(() => {
@@ -606,15 +610,19 @@ export const ScanSignalPage: React.FC = () => {
                         onClose={() => {
                             setChartSymbol(null);
                             setChartTrend(null);
+                            setChartState(null);
                         }}
                         symbolList={symbolList}
                         onSymbolChange={(newSymbol) => {
                             const signal = signals.find(s => s.symbol === newSymbol);
                             const trend = signal ? getTrendLabel(signal) : null;
+                            const state = signal?.state || null;
                             setChartSymbol(newSymbol);
                             setChartTrend(trend);
+                            setChartState(state);
                         }}
                         trend={chartTrend || undefined}
+                        state={chartState || undefined}
                     />
                 )}
             </div>
